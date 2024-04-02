@@ -96,16 +96,6 @@ contract UnwindLoansModule is Ownable, ReentrancyGuard {
   function _executeSafeTransaction_UpdateMinCratio(
     uint256 minCratio
   ) internal returns (bool success) {
-    // bytes memory payload = abi.encodeWithSignature(
-    //   'setMaxMarketValue(bytes32,uint256)',
-    //   marketKey,
-    //   0
-    // );
-    // address marketSettingsAddress = _addressResolver.requireAndGetAddress(
-    //   'PerpsV2MarketSettings',
-    //   'Missing Perpsv2MarketSettings address'
-    // );
-
     bytes memory payload = abi.encodeWithSignature('setMinCratio(uint256)', minCratio);
 
     success = _pDAOSafe.execTransactionFromModule(
@@ -114,17 +104,7 @@ contract UnwindLoansModule is Ownable, ReentrancyGuard {
       payload,
       Enum.Operation.Call
     );
-    // uint256 _lastParamterUpdatedAtTime = block.timestamp;
-
-    // if (success) {
-    //   emit ReduceMMVDone(marketKey, _lastParamterUpdatedAtTime);
-    // } else {
-    //   emit ReduceMMVFailed(marketKey, _lastParamterUpdatedAtTime);
-    // }
   }
 
   // --- Events --- //
-
-  // event ReduceMMVDone(bytes32 marketKey, uint256 paramterUpdatedAtTime);
-  // event ReduceMMVFailed(bytes32 marketKey, uint256 paramterUpdateAttemptedAtTime);
 }
