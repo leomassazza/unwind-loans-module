@@ -12,7 +12,9 @@ import './interfaces/ICollateralEthReduced.sol';
 //
 // @see: https://sips.synthetix.io/sips/sip-2095/
 contract UnwindLoansModule is Ownable, ReentrancyGuard {
-  address public constant SNX_PDAO_MULTISIG_ADDRESS = 0x6cd3f878852769e04A723A5f66CA7DD4d9E38A6C;
+  // address public constant SNX_PDAO_MULTISIG_ADDRESS = 0x6cd3f878852769e04A723A5f66CA7DD4d9E38A6C; // Optimism
+  address public constant SNX_PDAO_MULTISIG_ADDRESS = 0xEb3107117FEAd7de89Cd14D463D340A2E6917769; // Ethereum
+  address public constant SNX_TC_MULTISIG_ADDRESS = 0x99F4176EE457afedFfCB1839c7aB7A030a5e4A92; // TC Multisig
   // address public constant SNX_ADDRESS_RESOLVER = 0x95A6a3f44a70172E7d50a9e28c85Dfd712756B8C;
   address public constant SNX_COLLATERAL_ETH = 0x5c8344bcdC38F1aB5EB5C1d4a35DdEeA522B5DfA; // https://etherscan.io/address/0x5c8344bcdC38F1aB5EB5C1d4a35DdEeA522B5DfA
 
@@ -51,6 +53,8 @@ contract UnwindLoansModule is Ownable, ReentrancyGuard {
 
     ICollateralEthReduced collateralEth = ICollateralEthReduced(SNX_COLLATERAL_ETH);
 
+    // 0- check initial eth balance
+    uint256 initialEthBalance = address(this).balance;
     // 1- read the inicial minCRatio
     uint256 previousMinCratio = collateralEth.minCratio();
     // 2- set the new minCRatio
@@ -63,9 +67,15 @@ contract UnwindLoansModule is Ownable, ReentrancyGuard {
     require(success, 'Failed to update minCratio to previous value');
     // 5- read pendingWithdrawals and compare value with pendingWithdrawalAmount. Must be higher
     uint256 pendingWithdrawal = collateralEth.pendingWithdrawals(address(this));
-    require(pendingWithdrawal >= pendingWithdrawalAmount, 'not enough pending withdrawal');
     // 6- call claim
     collateralEth.claim(pendingWithdrawal);
+    // 7- confirm that the eth balance is higher than the initial balance by at least pendingWithdrawalAmount
+    uint256 currentEthBalance = address(this).balance;
+    require(currentEthBalance >= initialEthBalance, 'Eth balance is lower than initial balance');
+    require(
+      address(this).balance - initialEthBalance >= pendingWithdrawalAmount,
+      'Not enough eth withdrawn'
+    );
   }
 
   // @dev sets the paused state
@@ -79,15 +89,21 @@ contract UnwindLoansModule is Ownable, ReentrancyGuard {
   }
 
   function withdrawErc20(uint256 amount, address underlyingContract) external nonReentrant {
-    require(msg.sender == endorsedAccount, 'Not endorsed');
-    bool success = IERC20(underlyingContract).transfer(msg.sender, amount);
+    require(
+      msg.sender == endorsedAccount || msg.sender == SNX_TC_MULTISIG_ADDRESS,
+      'Not endorsed or TC'
+    );
+    bool success = IERC20(underlyingContract).transfer(SNX_TC_MULTISIG_ADDRESS, amount);
     require(success, 'Transfer failed');
   }
 
   function withdrawEth(uint256 amount) external nonReentrant {
-    require(msg.sender == endorsedAccount, 'Not endorsed');
+    require(
+      msg.sender == endorsedAccount || msg.sender == SNX_TC_MULTISIG_ADDRESS,
+      'Not endorsed or TC'
+    );
     // solhint-disable avoid-low-level-calls
-    (bool success, ) = msg.sender.call{value: amount}('');
+    (bool success, ) = SNX_TC_MULTISIG_ADDRESS.call{value: amount}('');
     require(success, 'Transfer failed');
   }
 
