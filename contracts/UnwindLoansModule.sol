@@ -107,6 +107,11 @@ contract UnwindLoansModule is Ownable, ReentrancyGuard {
     require(success, 'Transfer failed');
   }
 
+  // --- Fallback and receive functions --- //
+  fallback() external payable {}
+
+  receive() external payable {}
+
   // --- Internal --- //
 
   function _executeSafeTransaction_UpdateMinCratio(
