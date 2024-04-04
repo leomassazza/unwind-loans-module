@@ -5,6 +5,7 @@
   "author": "leomassazza",
   "scripts": {
     "fork:ovm": "npx hardhat node --fork https://mainnet.optimism.io",
+    "fork": "npx hardhat node --fork https://ethereum-rpc.publicnode.com",
     "compile": "hardhat compile",
     "build": "tsc && cp .env build/",
     "deploy": "hardhat run ./scripts/deploy.js --network 'mainnet-ovm'",
